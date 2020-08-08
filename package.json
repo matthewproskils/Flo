@@ -1,0 +1,16 @@
+{
+  "name": "FateLang",
+  "version": "1.0.0",
+  "description": "This is a new and exiting programming language",
+  "main": "index.js",
+  "bin": "./index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "npm": "^6.14.7"
+  }
+}
