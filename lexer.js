@@ -33,8 +33,7 @@ function Lexer(input) {
             strVal.forEach((el, i)=> {
                 var newLnNum = el.match(/\((\d*)\)/);
                 if (newLnNum) {
-                    console.log(newLnNum);
-                    for (var i=0; i<newLnNum; i++) {
+                    for (var i=0; i<parseFloat(newLnNum[1]); i++) {
                         el+="\n";
                     }
                 }
@@ -103,7 +102,8 @@ function Lexer(input) {
 
     this.process = input => {
         //Splits Into Lines and removes ALL spaces
-
+        
+        //Remove multiline strings
         input = input.replace(/\/\*[\s\S]*\*\//g, '')
 
         let array = input.split(/\n|,please/g);
