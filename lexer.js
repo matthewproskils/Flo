@@ -33,6 +33,7 @@ function Lexer(input) {
             strVal.forEach((el, i)=> {
                 var newLnNum = el.match(/\((\d*)\)/);
                 if (newLnNum) {
+                    el="";
                     for (var i=0; i<parseFloat(newLnNum[1]); i++) {
                         el+="\n";
                     }
