@@ -4,15 +4,14 @@ function Lexer(input) {
     this.parse = (arraypart, i) => {
         let part;
 		arraypart = arraypart.trim()
-        if (arraypart.match(/(set)(\ )/)) {
+        if (arraypart.match(/set\s*/)) {
             //set a variable
             if (arraypart.includes('=')) {
 				if (arraypart.split('=').length == 1) {
 					console.log(`(SyntaxError) 2 Variable Declaration Keywords Required, 1 given\n(When setting a variable, you need an equal sign (=) )`);
 				} else {
-					values = arraypart.match(/(set.*=)(.*)/)[2].trim().split('+')
-					let realvalues = []
-					values.forEach(element => realvalues.push(this.parse(element, i)))
+					values = arraypart.match(/(set.*?=)(.*)/)[2].trim().split('+');
+                    let realvalues = values.map(element => this.parse(element, i))
 					part = {
 						value: realvalues,
 						name: arraypart.match(/( )[^=]+/)[0].trim(),
@@ -24,25 +23,45 @@ function Lexer(input) {
         	}
         } else if (arraypart.slice(0, 1) == "'" || arraypart.slice(0, 1) == '"') {
             //string
-            //var srtVal = arraypart.match(/("|').*("|')/)[0].slice(1, arraypart.match(/("|').*("|')/)[0].length-1).replace(/\\n(\(.*\))/g, "\n");
             var strVal = arraypart.match(/("|').*("|')/)[0];
-            strVal = strVal.slice(1, arraypart.match(/("|').*("|')/)[0].length-1);
-            
-            strVal = strVal.split(/\\n(\(.*\))/g);
-            console.log(strVal);
-            strVal.forEach((el, i)=> {
-                var newLnNum = el.match(/\((\d*)\)/);
-                if (newLnNum) {
-                    el="";
-                    for (var i=0; i<parseFloat(newLnNum[1]); i++) {
-                        el+="\n";
-                    }
+            strVal = strVal.slice(1, strVal.length-1); //Remove quotes
+            strVal = strVal.replace(/\${.*?}/g, el=> {
+				return "${"+JSON.stringify(this.parse(el, i))+"}"
+			});
+
+            //Str commands:
+            function strCmd (regEx, type) {
+                strVal = strVal.replace(regEx, () => {
+                    return type.repeat(parseInt(arguments[1].slice(1, -1)))
+                });
+            }
+
+            strCmd(/\\n(\(\S+\))?/g, "\n");
+            strCmd(/\\t(\(\S+\))?/g, "\t");
+            strCmd(/\\s(\(\S+\))?/g, " ");
+
+            // support escapes
+            // b = binary
+            // o = octal
+            // x = hexadecimal
+            // u = unicode
+            strVal = strVal.replace(/\\([boxu])\((\S+)\)/g, function () {
+                const op /* :string */ = arguments[1] // 'b' | 'o' | 'x' | 'u'
+                const code /* :string */ = arguments[2]
+
+                if (op === 'b') {
+                    return String.fromCharCode(parseInt(code, 2))
+                } else if (op === 'o') {
+                    return String.fromCharCode(parseInt(code, 8))
+                } else if (op === 'x') {
+                    return String.fromCharCode(parseInt(code, 16))
+                } else if (op === 'u') {
+                    throw new Error('not implemented')
                 }
-                strVal[i] = JSON.parse(JSON.stringify(el));
-            });
+            })
 
  			part = {
-                value: strVal.join(""),
+                value: strVal,
                 type: 'string'
       	    };           
         } else if (arraypart.match(/([^(]+)\(.*\)/) && !arraypart.match(/[^(]+(\()/)[0].includes(' ')) {
@@ -58,14 +77,13 @@ function Lexer(input) {
 					args.forEach(el => {
 						if(el != ""){
 							argarray.push(this.parse(el, i));
-							console.log(this.parse(el, i))
 						}
                     })
                 }
                 part = {
                     args: argarray,
                     type: "function",
-                    value: arraypart.match(/([^(]+)\((.*)\)/)[1]
+                    name: arraypart.match(/([^(]+)\((.*)\)/)[1]
                 };
 
 			}
@@ -74,22 +92,38 @@ function Lexer(input) {
                 value: parseFloat(arraypart),
                 type: "number"
             }
-        } else if (arraypart.match(/^func\s*(\w+)\s*takes\s*args\s*\((.*)\)\s*\{.*\}/)) {
-            let regex = /^func\s*(\w+)\s*takes\s*args\s*\((.*)\)\s*\{(.*)\}/
-			let codepieces = arraypart.match(regex)[3].split('N=>L')
-			let realcode = []
-			codepieces.forEach(element => element.trim()!=""?realcode.push(this.parse(element, i)):console.log())
+        } else if (arraypart.match(/fun\s*\w+\s*\(.*\)\s*\{[\s\S]*\}/)) {
+            let regex = /fun\s*(\w+)\s*\((.*)\)\s*\{([\s\S]*)\}/
+            let match = arraypart.match(regex)
+			let codepieces = match[3].split('\n')
+			let realcode = codepieces.filter(el => el.trim() !== "").map(el => this.parse(el, i))
+
             part = {
                 type: "functionDef",
-
-                name: arraypart.match(regex)[1],
-                args: arraypart.match(regex)[2].split(","),
-                code: realcode
+                name: match[1],
+                args: match[2].split(","),
+                code: realcode,
+                params: match[2].split(","),
+                body: realcode
             }
-		} else if(arraypart.match(/([\w\d]+)/)){
+		} else if(arraypart.match(/-?\d+(\.\d+)?/)){
+			part = {
+				type: 'number',
+				value: parseFloat(arraypart)
+			}
+		} else if(arraypart[0] == '[' && arraypart[arraypart.length-1] == ']'){
+			let array = arraypart.slice(1, arraypart.length-1).split(',pls')
+			array = array.map(el => {
+				return this.parse(el, i)
+			})
+			part = {
+				type: 'array',
+				value: array
+			}
+		} else if(arraypart.match(/[\w\d]+/)){
 			part = {
 				type: "variable",
-				value: arraypart.match(/([\w\d]+)/)[0]
+				name: arraypart.match(/[\w\d]+/)
 			}
         } else {   
             console.log(`(SyntaxError) Unexpected token\n ${arraypart}\n at line ${i+1} 😢`)
@@ -105,16 +139,13 @@ function Lexer(input) {
         //Splits Into Lines and removes ALL spaces
         
         //Remove multiline strings
-        input = input.replace(/\/\*[\s\S]*\*\//g, '')
-
-        let array = input.split(/\n|,please/g);
-
-        //Remove comments:
-        array = array.filter(el=> { 
-            return el.trim().slice(0, 2) != "//";
-            // this is not a EOL comment!
-            // is this intended?
-        });
+        input = input.replace(/\/\*[\s\S]*?\*\//g, '')
+        //Multi-line comments
+		input = input.replace(/(\\\*)(.|\s)*(\*\\)/g, "")
+        //Single-line comments
+        input = input.replace(/\/\/.*/g, "");
+        
+        let array = input.split(/,pls,/g);
 
         //Remove blank indexes
         array = array.filter(el=> {

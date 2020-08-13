@@ -1,6 +1,9 @@
 # This Is My Suggestion For Syntax-- MatthewProSkils
 # @ pavi do all below until --DONE--
 ### Call Functions
+
+`"1 + 2 = ${ 1 + 2 }"` -> `"1 + 2 = " + ( 1 + 2 ) + ""`
+
 ```
 functionname => {functionargs}
 ```
@@ -14,7 +17,7 @@ set foo = "bar"
 ```
 ### Line Split
 ```
-SPLIT=>
+\n(number of \n's)
 ```
 # --DONE--
 ### Math
@@ -27,9 +30,9 @@ round=>(2.343)
 ```
 ### Write
 ```
-WriteLine=>('Hello World')
+print('Hello World')
 ```
-### New Line
+### New Lines
 `\n(<line_ammount>)`
 ```
 'hello \n(5) world'

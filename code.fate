@@ -1,14 +1,2 @@
-//WRITE YOUR CODE HERE
-print("test \n(5) test")
-
-//set x = 'hello' + 'world'
-/*
-print("test \n(5) test")
-
-//func greet takes args (name) {
-//    print("hello " + name)
-//}
-
-//greet("foo")
-
-*/
+fun any (txt) {print(txt)},pls,
+any("test")

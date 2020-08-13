@@ -1,7 +1,7 @@
 # How To Use Lexered Tokens
 ##### Example Function Token
-```
-{ value: 'print', type: 'function', args: [ {value: "hello", type: "string"} ] }
+```json
+{ namw: 'print', type: 'function', args: [ {value: "hello", type: "string"} ] }
 ```
 ##### Get Arguments:
 ```
@@ -29,7 +29,7 @@ lexed[lineNumber];
   type: 'FunctionDef',
   name: 'test',
   args: 'test',
-  code: see below
+  body: see below
 }
 ```
 ##### Example Function Declaration Code

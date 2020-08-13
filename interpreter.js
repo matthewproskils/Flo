@@ -1,23 +1,19 @@
 function Function(original) {
     this.original = original;
     this.scope = [];
-    //Adds args to the function scope:
-    /*this.original.args.forEach(el => {
-        this.scope.push(
-            evaluator.evaluate(el, this.scope)
-        );
-    });*/
 
     this.call = caller => {
+        this.scope = caller.args // test
+
         var cArgAmm = this.original.args.length > caller.args.length || this.original.args.length < caller.args.length;
         if (this.original.args[this.original.args.length - 1][0] != "*" && cArgAmm) {
             console.log(`
-               Error: at line ${caller.line}, ${caller.args.length} arguments given,
+               (Error:) at line ${caller.line}, ${caller.args.length} arguments given,
                ${this.original.args.length} required
             `)
         } else {
             if (this.original.fnEval) {
-                this.original.fnEval(caller.args);
+                this.original.fnEval(caller.args, this.scope);
             } else {
                 this.original.code.forEach(el => {
                     evaluator.evaluate(el, this.scope);
@@ -34,76 +30,68 @@ function Evaluator() {
         for (var i = 0; i < scope.length; i++) {
             if (scope[i].original && scope[i].original.name == name) {
                 return [scope[i], i];
-                // break; -- not required
             } else if (scope[i].name == name) {
-                return scope[i];
-                // break;
+                return [scope[i], i];
             }
         }
     }
 
     this.evaluate = (el, scope) => {
-        //console.log("element: \n" + JSON.stringify(el, null, 2));
         if (el.type == "function") {
             //This is calling a function
-            var containsFunc = this.scopeContainsName(el.value, scope) || this.scopeContainsName(el.value, this.globalScope);
+            var containsFunc = this.scopeContainsName(el.name, scope) || this.scopeContainsName(el.name, this.globalScope);
 
+            //console.log(":::", containsFunc)
             if (containsFunc) {
                 containsFunc[0].call(el);
             } else {
-                console.log(`The function ${el.name} at line ${el.line} does not exist`)
+                console.log(`(Error:) The function ${el.name} at line ${el.line} is undefined(doesn't exist)`)
             }
         } else if (el.type == "variableDef") {
-            let containsVar = this.scopeContainsName(el.value, scope) || this.scopeContainsName(el.value, this.globalScope);
+            let containsVar = this.scopeContainsName(el.name, scope) || this.scopeContainsName(el.name, this.globalScope);
+
             if (containsVar) {
-				for(let i = 0; i < el.value.length; i++){
-					if(el.value[i].type == 'variable'){
-						el.value[i] == {type: 'string', value: evaluator.evaluate(el.value[i].value, this.globalScope)}
-					}
-				}
-				for(let i=0; i < el.value.length; i++){
-					el.value[i] = el.value[i].value
-				}
-                this.globalScope[containsVar] = { name: el.name, value: el.value};
+                if (this.globalScope.includes(containsVar[0])) {
+                    this.globalScope[containsVar[1]].value = el.value[0].value;
+                } else {
+                    scope[containsVar[1]] = containsVar[0];
+                }
             } else {
-				for(let i = 0; i < el.value.length; i++){
-					if(el.value[i].type == 'variable'){
-						el.value[i] == {type: 'string', value: evaluator.evaluate(el.value[i].value, this.globalScope)}
-					}
-				}
-				for(let i=0; i < el.value.length; i++){
-					el.value[i] = el.value[i].value
-				}
-				this.globalScope.push({name: el.name, value: el.value.join("")})
+                scope.push({
+                    name: el.name,
+                    value: this.evaluate(el.value[0], scope)
+                });
 	        }
         } else if (el.type == "functionDef") {
-            console.log(`Defining a function named: "${el.name}"`);
-            var contains = this.scopeContainsName(el.value, scope);
+            var contains = this.scopeContainsName(el.name, scope) || this.scopeContainsName(el.name, this.globalScope);
 
             if (contains) {
-                scope[contains[1]] = new Function(el);
+                this.globalScope[contains[1]] = new Function(el);
             } else {
                 scope.push(new Function(el));
 			}
         } else if (el.type == "variable") {
-            let containsVar = this.scopeContainsName(el.value, scope) || this.scopeContainsName(el.value, this.globalScope);
+            let containsVar = this.scopeContainsName(el.name, scope) || this.scopeContainsName(el.name, this.globalScope);
 
             if (containsVar) {
-                return containsVar;
+                // console.log(containsVar[0])
+                return containsVar[0].value;
             } else {
-                console.log(`Error: The variable call at line ${el.line} is undefined`);
+                console.log(`(Error:) The variable call at line ${el.line} is undefined`);
             }
         } else if(el.type == "string"){
-			return el
+			/*return el.value.replace(/\${.*?}/g, el=> {
+				
+				
+            })*/
+            return el.value;
+		} else if(el.type == 'array'){
+			let array;
+			array = el.value.map(el => {return this.evaluate(el)})
 		} else {
-			console.log('error message?')
+			console.log(" ".repeat(el.length) + el.value)
+			console.log('(Error:) token (^) type is undefined')
 		}
-    }
-
-    this.process = tree => {
-        tree.forEach(el => {
-            this.evaluate(el, this.globalScope);
-        });
     }
 }
 
@@ -119,20 +107,26 @@ evaluator.globalScope.push(
     new Function({
         type: "functionDef",
         name: "print",
-
-        fnEval: args => {
-			for(let i=0; i < args.length;i++){
+        fnEval: (args, scope) => {
+			/*for(let i=0; i < args.length; i++){
 				if(args[i].type == 'variable'){
                     args[i] = evaluator.evaluate(args[i], evaluator.globalScope).value
 				}
 			}
-            
-			args = args.filter(el => el.value != "" || el.value != void(0));
-			let string = args.map(el => el.value || el)
+			
+            args = args.filter(el => el.value != "" || el.value);
+            args = args.map(arg=> arg.value);
+        
+			console.log(args.join(""));*/
 
-            // @pavi2410: fixed; not sure why el.value is used
-            
-			console.log(string.toString())
+            for (var i=0; i<args.length; i++) {
+                console.log(evaluator.evaluate(args[i], scope));
+            }
+			/*let stringarray = []
+            for (var i=0; i<args.length; i++) {
+                stringarray.push(args[i].value);
+            }*/
+			//console.log(stringarray.join(""))
         },
         args: ["*text"]
     })
@@ -142,8 +136,19 @@ evaluator.globalScope.push(
     new Function({
         type: "functionDef",
         name: "doMath",
-        fnEval: args => {
-            return eval(args[0].value);
+        fnEval: (args, scope) => {
+            console.log(eval(args[0].value));
+        },
+        args: ["math"]
+    })
+)
+
+evaluator.globalScope.push(
+    new Function({
+        type: "functionDef",
+        name: "typeOf",
+        fnEval: (args, scope) => {
+            return args[0].type;
         },
         args: ["math"]
     })
@@ -153,8 +158,8 @@ evaluator.globalScope.push(
     new Function({
         type: "functionDef",
         name: "roundFloat",
-        fnEval: args => {
-            return Number(`${args[0].value}`.split(".")[0])
+        fnEval: (args, scope) => {
+            console.log(Number(`${args[0].value}`.split(".")[0]))
         },
         args: ["float"]
     })
