@@ -3,39 +3,27 @@ Made by CodeLongAndProsper, MatthewProSkills, and PowerCoder
 
 # Basic Syntax:
 
-###### Function declaration: (one line)
-
+### **Functions**
+##### Defining
 ```
-func funcname takes args(arguments(split by ,pls)) {code(split by ',pls')}
+fun <name> (args*) {
+ <code>
+} 
 ```
-
-###### Calling Functions:
-
+##### Calling
 ```
-functionName(*arguments)
+<name>(args*)
 ```
-
-###### Variable assignment:
-
+### *Variables*
+#### Defining
 ```
-set name = value;
+name = "Foo"
 ```
-###### Print
+#### Calling
 ```
-print('hello world')
+name
 ```
-###### Comments
+#### Lines Split By `,pls,`
 ```
-//This Is A One Line Comment
+,pls,
 ```
-##### Math
-```
-doMath('9*9')
-roundMath(9345.234045)
-```
-
-# In-built functions:
-* **print(string)** 
-  *(Prints a string to the console)* 
-# One-Line Code
-SPLIT BY `,pls`
