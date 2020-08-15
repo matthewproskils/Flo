@@ -1,0 +1,3 @@
+set array = ['one', 'two', 'three']
+print(array)
+//Should Return ['one', 'two', 'three']

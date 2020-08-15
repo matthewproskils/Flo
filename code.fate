@@ -1,2 +1,2 @@
-fun any (txt) {print(txt)},pls,
-any("test")
+set x = 'hello',pls,
+print(x)

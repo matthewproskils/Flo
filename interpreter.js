@@ -118,8 +118,9 @@ evaluator.globalScope.push(
             args = args.map(arg=> arg.value);
         
 			console.log(args.join(""));*/
-
             for (var i=0; i<args.length; i++) {
+                console.log(args[i]);
+                console.log(scope);
                 console.log(evaluator.evaluate(args[i], scope));
             }
 			/*let stringarray = []

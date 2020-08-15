@@ -1,4 +1,4 @@
-# Hardlang
+# FateLang
 Made by CodeLongAndProsper, MatthewProSkills, and PowerCoder
 
 # Basic Syntax:

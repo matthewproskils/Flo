@@ -128,7 +128,6 @@ function Lexer(input) {
         } else {   
             console.log(`(SyntaxError) Unexpected token\n ${arraypart}\n at line ${i+1} 😢`)
         }
-        
         if (part) {
             part.line = JSON.parse(JSON.stringify(i));
             return part;

@@ -1,0 +1,11 @@
+set obj = {
+	'hello': 'world',
+	'haha': 'yes'
+}
+print(obj)
+//Result: {
+//	'hello': 'world',
+//	'haha': 'yes'
+//}
+print(obj.hello)
+//Result: 'world'
