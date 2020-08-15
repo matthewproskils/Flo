@@ -27,3 +27,5 @@ name
 ```
 ,pls,
 ```
+
+[![Run on Repl.it](https://repl.it/badge/github/matthewproskils/FateLang)](https://repl.it/github/matthewproskils/FateLang)
