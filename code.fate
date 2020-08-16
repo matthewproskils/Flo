@@ -1,1 +1,9 @@
-doMath("24/2-6*5+9")
+print('hello')
+
+set x = 1
+                     
+x = 3
+
+x = 2
+
+print(x)

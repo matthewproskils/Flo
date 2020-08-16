@@ -7,12 +7,11 @@ function interpret(ast, scope) {
   if (ast.type === "Program") {
     return ast.body.map(k => interpret(k, scope))
   }
-  if (ast.type === "FunCall") {
+  if (ast.type === "CallExpr") {
     const { id: callee, args } = ast
 
     const argVals = ast.args.map(arg => interpretExpr(arg, scope));
     const closureOrFunc = interpretExpr(callee, scope);
-
     switch (closureOrFunc.type) {
       case 'closure':
         // Don't know what it is \(>.<)/
@@ -26,29 +25,38 @@ function interpret(ast, scope) {
     }
 
   } else if (ast.type === "VarDecl") {
-    let containsVar = scope.get(ast.name);
 
-    scope.set(ast.name, interpret(ast.value[0], scope));
+    const {id: { value: name }, expr } = ast
+
+    const exprVal = interpretExpr(expr, scope)
+
+    let containsVar = scope.get(name);
+
+    if (containsVar) throw new Error(`variable ${name} is redeclared`)
+
+    scope.set(name, exprVal);
 
     return undefined;
-  } else if (ast.type === "FuncDecl") {
+  } else if (ast.type === "FunDecl") {
+    
     let contains = scope.get(ast.name)
 
     scope.set(ast.name, ast);
 
     return undefined;
-  } else if (ast.type === "Identifier") {
-    let containsVar = scope.get(ast.id);
+  } else if (ast.type === "Assignment") {
+    const {id: { value: name }, expr} = ast
 
-    if (!containsVar) {
-      throw new Error(`(Error:) The variable call at line ${ast.line} is undefined`);
-    }
+    const exprVal = interpretExpr(expr, scope)
 
-    return containsVar[0].value;
-  } else if (ast.type === "string" || ast.type === 'number' || ast.type == 'array') {
-    return ast.value;
+    let containsVar = scope.get(name);
+
+    if (!containsVar) throw new Error(`variable ${name} is not declared`)
+
+    scope.set(name, exprVal)
+    return undefined
   } else {
-    console.log(`(Error:) token ${ast.value} has an undefined type (${ast.type}) is undefined`)
+    throw new Error(`(Error:) token ${ast.value} has an undefined type (${ast.type}) is undefined`)
   }
 }
 

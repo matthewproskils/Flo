@@ -37,7 +37,7 @@ StatementList = head:Statement? tail:(_ Statement)* {
   return buildList(head, tail, 1)
 }
 
-Statement = VarDecl / FunDecl / FunCall / AssignmentExpr / EOS / Comment
+Statement = VarDecl / FunDecl / CallExpr / AssignmentExpr / EOS / Comment
 
 VarDecl = "set" _ id:Identifier _ '=' _ expr:Expr EOS {
   return { type: 'VarDecl', id, expr }
@@ -47,8 +47,8 @@ FunDecl = "fun" _ id:Identifier _ '(' head:Identifier? tail:(_ ',' _ Identifier)
   return { type: "FunDecl", id, params: buildList(head, tail, 3), body }
 }
 
-FunCall = id:Identifier '(' head:(Identifier / Expr)? tail:(_ ',' _ (Identifier / Expr))* ')' {
-  return { type: 'FunCall', id, args: buildList(head, tail, 3) }
+CallExpr = id:Identifier '(' head:(Identifier / Expr)? tail:(_ ',' _ (Identifier / Expr))* ')' {
+  return { type: 'CallExpr', id, args: buildList(head, tail, 3) }
 }
 
 AssignmentExpr = id:Identifier _ '=' _ expr:Expr {
@@ -85,10 +85,11 @@ Identifier = head:[$_a-zA-Z] tail:[a-zA-Z0-9]* {
   return { type: 'Identifier', value: head + tail.join('') }
 }
 
-Comment "comment" = MultiLineComment / SingleLineComment
+Comment "comment" = MultiLineComment / SingleLineComment / Newline
 
 MultiLineComment = "/*" (!"*/" .)* "*/" {return {type: 'comment'}}
 
+Newline = "\n" {return {type: 'comment'}}
 MultiLineCommentNoLineTerminator = "/*" (!("*/" / LineTerminator) .)* "*/"
 
 SingleLineComment = "//" (!LineTerminator .)* {return {type: 'comment'}}
