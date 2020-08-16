@@ -1,27 +1,27 @@
 #!/usr/bin/env node
 
+//Modules
+const fs = require("fs");
+const peg = require("pegjs");
+
+//Data Count
 let startMem = process.memoryUsage().heapUsed
 let startTime = process.hrtime.bigint();
 
-const fs = require("fs");
-const { Lexer } = require("./lexer.js");
-const { evaluator } = require("./interpreter.js");
+//Getting Other Files
+const { interpret, globalScope } = require("./new/Interpreter.js");
 
 //GET INPUT
 let input = fs.readFileSync("code.fate").toString();
-let lexed = new Lexer().process(input);
-console.log("Syntax Tree:", JSON.stringify(lexed, null, 2));
-//console.log(lexed);
-console.log("\nEvaluator message:");
-lexed.forEach(el => {
-    evaluator.evaluate(el, evaluator.globalScope);
-});
-////////////////////////////////////////////////////////////
-const { interpret, globalScope } = require("./new/Interpreter.js");
 
-interpret(lexed, globalScope);
-////////////////////////////////////////////////////////////
+//PegJs
+const grammer = fs.readFileSync("./new/grammar.pegjs").toString();
+const parser = peg.generate(grammer)
+//Parse Input
+input = input.split(',pls,')
+input = input.map(el => {return parser.parse(el)})
 
+//Count Time / Data / Whatsnot
 let endTime = process.hrtime.bigint()
 let endMem = process.memoryUsage().heapUsed
 
@@ -31,3 +31,16 @@ console.log(`Used ${(endMem - startMem) / 1024} KB of memory`)
 
 
 console.log(JSON.stringify(require('./new/Parser').parse('set x = 1\n'), null, 2))
+
+//Old Stuff
+/*let lexed = new Lexer().process(input);
+console.log("Syntax Tree:", JSON.stringify(lexed, null, 2));
+//console.log(lexed);
+console.log("\nEvaluator message:");
+lexed.forEach(el => {
+    evaluator.evaluate(el, evaluator.globalScope);
+});
+
+interpret(lexed, globalScope);*/
+//const { Lexer } = require("./lexer.js");
+//const { evaluator } = require("./interpreter.js");
