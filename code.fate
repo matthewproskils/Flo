@@ -1,9 +1,15 @@
-print('hello')
+set imglobal = 0
 
-set x = 1
-                     
-x = 3
+fun greet(x, y) {
+	
+	println(imglobal)
 
-x = 2
+	println('init')
 
-print(x)
+	println(y)
+
+	println('yay')
+
+}
+
+greet('foo', 'bar')

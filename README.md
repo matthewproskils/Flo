@@ -1,9 +1,7 @@
 # FateLang
 Made by CodeLongAndProsper, MatthewProSkills, and PowerCoder
 
-# Basic Syntax:
-
-### **Functions**
+### **`Functions`**
 ##### Defining
 ```
 fun <name> (args*) {
@@ -14,7 +12,7 @@ fun <name> (args*) {
 ```
 <name>(args*)
 ```
-### *Variables*
+### **`Variables`**
 #### Defining
 ```
 name = "Foo"
@@ -27,3 +25,16 @@ name
 ```
 ,pls,
 ```
+### **`Space Manipulators`**
+```
+\n(<amm>)
+```
+Specifies the new line ammount.
+```
+\s(<amm>)
+```
+Specifies the space ammount.
+```
+\t(<amm>)
+```
+Specifies the tab ammount.

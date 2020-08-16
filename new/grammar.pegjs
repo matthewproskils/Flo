@@ -29,6 +29,44 @@
   function optionalList(value) {
     return value !== null ? value : [];
   }
+
+	/////////////////////
+
+	function escapeString(strVal) {
+		function strCmd (regEx, type) {
+			strVal = strVal.replace(regEx, function () {
+				return type.repeat(parseInt((arguments[1] || '(1)').slice(1, -1)))
+			})
+		}
+
+		strCmd(/\\n(\(\S+\))?/g, "\n");
+		strCmd(/\\t(\(\S+\))?/g, "\t");
+		strCmd(/\\s(\(\S+\))?/g, " ");
+
+		// support escapes
+		// b = binary
+		// o = octal
+		// x = hexadecimal
+		// u = unicode
+		strVal = strVal.replace(/\\([boxu])\((\S+)\)/g, function () {
+				const op = arguments[1] // 'b' | 'o' | 'x' | 'u'
+				const code = arguments[2]
+
+				if (op === 'b') {
+						return String.fromCharCode(parseInt(code, 2))
+				} else if (op === 'o') {
+						return String.fromCharCode(parseInt(code, 8))
+				} else if (op === 'x') {
+						return String.fromCharCode(parseInt(code, 16))
+				} else if (op === 'u') {
+						throw new Error('not implemented')
+				}
+		})
+
+		return strVal
+	}
+
+	//////////////////////////////
 }
 
 Program = body:StatementList { return { type: "Program", body } }
@@ -44,18 +82,18 @@ VarDecl = "set" _ id:Identifier _ '=' _ expr:Expr EOS {
 }
 
 FunDecl = "fun" _ id:Identifier _ '(' head:Identifier? tail:(_ ',' _ Identifier)* ')' _ '{' _ body:StatementList _ '}' {
-  return { type: "FunDecl", id, params: buildList(head, tail, 3), body }
+  return { type: "FunDecl", id, params: [].concat(optionalList(head), extractList(tail, 3)), body }
 }
 
 CallExpr = id:Identifier '(' head:(Identifier / Expr)? tail:(_ ',' _ (Identifier / Expr))* ')' {
-  return { type: 'CallExpr', id, args: buildList(head, tail, 3) }
+  return { type: 'CallExpr', id, args: [].concat(optionalList(head), extractList(tail, 3)) }
 }
 
 AssignmentExpr = id:Identifier _ '=' _ expr:Expr {
   return { type: 'Assignment', id, expr }
 }
 
-Expr = Literal / ArrayLiteral
+Expr = Literal / ArrayLiteral / CallExpr
 
 BinOps = '+' / '-' / '*' / '/'
 
@@ -66,7 +104,7 @@ ArrayLiteral = '[' _ head:Literal? tail:(_ ',' _ Literal)* _ ']' {
 Literal = Str / Bool / Number / Null
 
 Str = (('"' [^"]* '"') / ("'" [^']* "'")) {
-  return { type: 'StringLiteral', value: text().slice(1,-1) }
+  return { type: 'StringLiteral', value: escapeString(text().slice(1,-1)) }
 }
 
 Bool = ("true" / "false") {
@@ -78,11 +116,11 @@ Number = '-'? [0-9]+ ('.' [0-9]+)? {
 }
 
 Null = "null" {
-  return { type: 'NullLiteral', value: null }
+  return { type: 'NullLiteral' }
 }
 
 Identifier = head:[$_a-zA-Z] tail:[a-zA-Z0-9]* {
-  return { type: 'Identifier', value: head + tail.join('') }
+  return { type: 'Identifier', name: head + tail.join('') }
 }
 
 Comment "comment" = MultiLineComment / SingleLineComment / Newline
@@ -99,3 +137,5 @@ LineTerminator = '\n'
 _ "whitespace" = [ \t\r\n]*
 
 EOS = '\n'+ { return }
+
+EOF = !.

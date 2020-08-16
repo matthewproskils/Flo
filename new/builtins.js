@@ -1,42 +1,34 @@
-/*___________________________________
-|       In-built Functions          |
-|___________________________________|
-*/
-
-const { interpret } = require('./Interpreter')
-
 const builtins = {
+	"PI": 3.14,
   "print": {
     type: "function",
-    name: "print",
     call: args => {
-      console.log(args)
-    },
-    args: ["*text"]
+      process.stdout.write(args.toString())
+    }
   },
-  "doMath": {
+	"println": {
     type: "function",
-    name: "doMath",
+    call: args => {
+      process.stdout.write(args.toString() + '\n')
+    }
+  },
+  "evalJS": {
+    type: "function",
     call: args => {
       return eval(args);
-    },
-    args: ["math"]
+    }
   },
   "typeOf": {
     type: "function",
-    name: "typeOf",
     call: args => {
       return args[0].type;
-    },
-    args: ["math"]
+    }
   },
   "roundFloat": {
     type: "function",
-    name: "roundFloat",
     call: args => {
-      console.log(Number(`${args[0].value}`.split(".")[0]))
-    },
-    args: ["float"]
+      return Number(`${args[0]}`.split(".")[0])
+    }
   }
 }
 
