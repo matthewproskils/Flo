@@ -3,52 +3,53 @@ const Scope = require("./Scope.js")
 
 let globalScope = new Scope(builtins, null)
 
-function interpret(el, scope) {
-    if (el instanceof Array) {
-        return el.map(k => interpret(k, scope))
+function interpret(ast, scope) {
+  if (ast.type === "Program") {
+    return ast.body.map(k => interpret(k, scope))
+  }
+  if (ast.type === "FunCall") {
+    const { id: callee, args } = ast
+
+    const argVals = ast.args.map(arg => interpretExpr(arg, scope));
+    const closureOrFunc = interpretExpr(callee, scope);
+
+    switch (closureOrFunc.type) {
+      case 'closure':
+        // Don't know what it is \(>.<)/
+        return applyClosure(interpretExpr, closureOrFunc, vals, env, Options.isLexical);
+
+      case 'function':
+        return closureOrFunc.call.apply(null, argVals);
+
+      default:
+        throw new Error(`The function ${callee.value} doesn't exist`)
     }
 
-    if (el.type === "function") {
-        //This is calling a function
-        console.log(scope, el.name, scope.get(el.name))
-        let containsFunc = scope.get(el.name);
+  } else if (ast.type === "VarDecl") {
+    let containsVar = scope.get(ast.name);
 
-        if (!containsFunc) {
-            throw new Error(`The function ${el.name} at line ${el.line} doesn't exsist`)
-        }
-        
+    scope.set(ast.name, interpret(ast.value[0], scope));
 
-        let funScope = new Scope({}, scope)
+    return undefined;
+  } else if (ast.type === "FuncDecl") {
+    let contains = scope.get(ast.name)
 
-        // el.args.map(arg => )
-        
+    scope.set(ast.name, ast);
 
-        return interpret(containsFunc.body, funScope);
-    } else if (el.type === "variableDef") {
-        let containsVar = scope.get(el.name);
+    return undefined;
+  } else if (ast.type === "Identifier") {
+    let containsVar = scope.get(ast.id);
 
-        scope.set(el.name, interpret(el.value[0], scope));
-
-        return undefined;
-    } else if (el.type === "functionDef") {
-        let contains = scope.get(el.name)
-
-        scope.set(el.name, el);
-
-        return undefined;
-    } else if (el.type === "variable") {
-        let containsVar = scope.get(el.name);
-
-        if (!containsVar) {
-            throw new Error(`(Error:) The variable call at line ${el.line} is undefined`);
-        }
-
-        return containsVar[0].value;
-    } else if (el.type === "string" || el.type === 'number' || el.type == 'array') {
-        return el.value;
-    } else {
-        console.log(`(Error:) token ${el.value} has an undefined type (${el.type}) is undefined`)
+    if (!containsVar) {
+      throw new Error(`(Error:) The variable call at line ${ast.line} is undefined`);
     }
+
+    return containsVar[0].value;
+  } else if (ast.type === "string" || ast.type === 'number' || ast.type == 'array') {
+    return ast.value;
+  } else {
+    console.log(`(Error:) token ${ast.value} has an undefined type (${ast.type}) is undefined`)
+  }
 }
 
 module.exports = { interpret, globalScope };
@@ -67,14 +68,14 @@ const statementInterp = (exp, env) => {
 
         switch (currentExp.type) {
           case 'ExpressionStatement': {
-            expInterp(currentExp.expression, currentEnv); // stuff like `log(something)`
+            interpretExpr(currentExp.expression, currentEnv); // stuff like `log(something)`
             continue;
           }
 
           case 'ReturnStatement': {
             const { argument } = currentExp;
 
-            return expInterp(argument, currentEnv); // early return!
+            return interpretExpr(argument, currentEnv); // early return!
           }
 
           case 'VariableDeclaration': {
@@ -97,7 +98,7 @@ const statementInterp = (exp, env) => {
               init.extra = { isLambda: true, name };
             }
 
-            const val = expInterp(init, currentEnv);
+            const val = interpretExpr(init, currentEnv);
             currentEnv = extendEnv(name, val, currentEnv);
 
             continue;
@@ -122,52 +123,49 @@ const statementInterp = (exp, env) => {
 ////////////////
 
 
-const expInterp = (exp, env) => {
-  switch (exp.type) {
+const interpretExpr = (ast, scope) => {
+  switch (ast.type) {
     case 'NullLiteral': {
       return null;
     }
 
-    case 'NumericLiteral':
+    case 'StringLiteral':
+    case 'NumberLiteral':
     case 'BooleanLiteral': {
-      return exp.value;
+      return ast.value;
     }
 
     case 'BlockStatement': {
-      return statementInterp(exp, env);
+      return statementInterp(ast, scope);
     }
 
     case 'Identifier': {
-      const { name } = exp;
+      const { value: name } = ast;
 
-      if (Object.keys(Prims).includes(name)) {
-        return Prims[name];
-      }
-
-      return lookupEnv(name, env);
+      return scope.get(name, scope);
     }
 
     case 'ArrowFunctionExpression': {
-      const { body, params } = exp;
+      const { body, params } = ast;
       const names = params.map((obj) => obj.name);
 
-      if (exp.extra && exp.extra.isLambda) {
-        const { name: selfId } = exp.extra;
-        return makeRecClosure(selfId, names, body, env);
+      if (ast.extra && ast.extra.isLambda) {
+        const { name: selfId } = ast.extra;
+        return makeRecClosure(selfId, names, body, scope);
       }
 
-      return makeClosure(names, body, env);
+      return makeClosure(names, body, scope);
     }
 
     case 'CallExpression': {
-      const { callee, arguments: rawArgs } = exp;
+      const { callee, arguments: rawArgs } = ast;
       // here we recur on both sides
-      const vals = rawArgs.map((obj) => expInterp(obj, env));
-      const closureOrFunc = expInterp(callee, env);
+      const vals = rawArgs.map((obj) => interpretExpr(obj, scope));
+      const closureOrFunc = interpretExpr(callee, scope);
 
       switch (closureOrFunc.type) {
         case CLOSURE_TYPE_FLAG: {
-          return applyClosure(expInterp, closureOrFunc, vals, env, Options.isLexical);
+          return applyClosure(interpretExpr, closureOrFunc, vals, scope, Options.isLexical);
         }
         case NATIVE_FUNC_FLAG: {
           return closureOrFunc.func.apply(null, vals);
@@ -179,14 +177,14 @@ const expInterp = (exp, env) => {
     }
 
     case 'UnaryExpression': {
-      const { argument, operator } = exp;
+      const { argument, operator } = ast;
 
       switch (operator) {
         case '!': {
-          return !expInterp(argument, env);
+          return !interpretExpr(argument, scope);
         }
         case '-': {
-          return -expInterp(argument, env);
+          return -interpretExpr(argument, scope);
         }
         default: {
           throw new Error(`unsupported UnaryExpression operator ${operator}`);
@@ -195,57 +193,47 @@ const expInterp = (exp, env) => {
     }
 
     case 'BinaryExpression': {
-      const { left, operator, right } = exp;
+      const { left, operator, right } = ast;
+
+      const leftVal = interpretExpr(left, scope)
+      const rightVal = interpretExpr(right, scope)
+
       switch (operator) {
-        case '+': {
-          return expInterp(left, env) + expInterp(right, env);
-        }
-        case '-': {
-          return expInterp(left, env) - expInterp(right, env);
-        }
-        case '*': {
-          return expInterp(left, env) * expInterp(right, env);
-        }
-        case '/': {
-          return expInterp(left, env) / expInterp(right, env);
-        }
-        case '==': {
-          return expInterp(left, env) == expInterp(right, env); // eslint-disable-line eqeqeq
-        }
-        case '===': {
-          return expInterp(left, env) === expInterp(right, env);
-        }
-        case '!=': {
-          return expInterp(left, env) != expInterp(right, env); // eslint-disable-line eqeqeq
-        }
-        case '!==': {
-          return expInterp(left, env) !== expInterp(right, env);
-        }
-        case '<': {
-          return expInterp(left, env) < expInterp(right, env); // eslint-disable-line eqeqeq
-        }
-        case '<=': {
-          return expInterp(left, env) <= expInterp(right, env);
-        }
-        case '>': {
-          return expInterp(left, env) > expInterp(right, env); // eslint-disable-line eqeqeq
-        }
-        case '>=': {
-          return expInterp(left, env) >= expInterp(right, env);
-        }
-        default: {
-          throw new Error(`unsupported BinaryExpression operator ${operator}`);
-        }
+        case '+':
+          return leftVal + rightVal;
+        case '-':
+          return leftVal - rightVal;
+        case '*':
+          return leftVal * rightVal;
+        case '/':
+          return leftVal / rightVal;
+        case '==':
+          return leftVal == rightVal;
+        case '===':
+          return leftVal === rightVal;
+        case '!=':
+          return leftVal != rightVal;
+        case '!==':
+          return leftVal !== rightVal;
+        case '<':
+          return leftVal < rightVal;
+        case '<=':
+          return leftVal <= rightVal;
+        case '>':
+          return leftVal > rightVal;
+        case '>=':
+          return leftVal >= rightVal;
+        default:
+          throw new Error(`unsupported binary operator ${operator}`);
       }
     }
 
     case 'ConditionalExpression': {
-      const { alternate, consequent, test } = exp;
-      return expInterp(test, env) ? expInterp(consequent, env) : expInterp(alternate, env);
+      const { alternate, consequent, test } = ast;
+      return interpretExpr(test, scope) ? interpretExpr(consequent, scope) : interpretExpr(alternate, scope);
     }
 
-    default: {
-      throw new Error(`unsupported expression type ${exp.type}`);
-    }
+    default:
+      throw new Error(`unsupported expression type ${ast.type}`);
   }
 };

@@ -1,2 +1,1 @@
-set x = 'hello',pls,
-print(x)
+doMath("24/2-6*5+9")

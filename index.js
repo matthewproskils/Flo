@@ -17,20 +17,28 @@ let input = fs.readFileSync("code.fate").toString();
 //PegJs
 const grammer = fs.readFileSync("./new/grammar.pegjs").toString();
 const parser = peg.generate(grammer)
+
 //Parse Input
-input = input.split(',pls,')
-input = input.map(el => {return parser.parse(el)})
+// input = input.split(',pls,')
+const ast = parser.parse(input)
+
+console.log("\x1b[92m")
+console.log("AST", JSON.stringify(ast, null, 1))
+console.log('\x1b[0m')
+
+
+const output = interpret(ast, globalScope)
+
+console.log('\x1b[33m')
+console.log(output)
 
 //Count Time / Data / Whatsnot
 let endTime = process.hrtime.bigint()
 let endMem = process.memoryUsage().heapUsed
 
-console.log("\x1b[2m")
+console.log("\x1b[0m\x1b[2m")
 console.log(`Took ${(endTime - startTime) / 1000000n} ms or ${endTime - startTime} ns`);
 console.log(`Used ${(endMem - startMem) / 1024} KB of memory`)
-
-
-console.log(JSON.stringify(require('./new/Parser').parse('set x = 1\n'), null, 2))
 
 //Old Stuff
 /*let lexed = new Lexer().process(input);

@@ -5,41 +5,39 @@
 
 const { interpret } = require('./Interpreter')
 
-const builtins = [
-  {
+const builtins = {
+  "print": {
     type: "function",
     name: "print",
-    call: (args, scope) => {
-      args
-        .map(arg => interpret(arg, scope))
-        .forEach(console.log)
+    call: args => {
+      console.log(args)
     },
     args: ["*text"]
   },
-  {
+  "doMath": {
     type: "function",
     name: "doMath",
-    call: (args, scope) => {
-      console.log(eval(args[0].value));
+    call: args => {
+      return eval(args);
     },
     args: ["math"]
   },
-  {
+  "typeOf": {
     type: "function",
     name: "typeOf",
-    call: (args, scope) => {
+    call: args => {
       return args[0].type;
     },
     args: ["math"]
   },
-  {
+  "roundFloat": {
     type: "function",
     name: "roundFloat",
-    call: (args, scope) => {
+    call: args => {
       console.log(Number(`${args[0].value}`.split(".")[0]))
     },
     args: ["float"]
   }
-]
+}
 
 module.exports = builtins

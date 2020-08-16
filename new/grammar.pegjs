@@ -33,7 +33,7 @@
 
 Program = body:StatementList { return { type: "Program", body } }
 
-StatementList = head:Statement tail:(_ Statement)* {
+StatementList = head:Statement? tail:(_ Statement)* {
   return buildList(head, tail, 1)
 }
 
