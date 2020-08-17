@@ -134,7 +134,7 @@ SingleLineComment = "//" (!LineTerminator .)* {return {type: 'comment'}}
 
 LineTerminator = '\n'
 
-_ "whitespace" = [ \t\r\n]*
+_ "whitespace" = [\s]*
 
 EOS = '\n'+ { return }
 

@@ -1,11 +1,12 @@
-const builtins = require("./builtins.js")
+const builtins = require("./Builtins.js")
 const Scope = require("./Scope.js")
 
-let globalScope = new Scope(builtins, null)
-
 function interpret(ast, scope) {
+	if (ast === undefined) return
+
 	if (ast.type === "Program") {
-		return ast.body.map(k => interpret(k, scope))
+		let globalScope = new Scope(builtins, null)
+		return ast.body.map(k => interpret(k, globalScope))
 	}
 
 	if (ast.type === 'NullLiteral') {
@@ -28,7 +29,6 @@ function interpret(ast, scope) {
 		const { id: callee, args } = ast
 
 		const argVals = ast.args.map(arg => interpret(arg, scope))
-
 		const closureOrFunc = interpret(callee, scope);
 
 		switch (closureOrFunc.type) {
@@ -93,7 +93,7 @@ function interpret(ast, scope) {
 		return undefined
 	}
 
-	if (ast.type === 'UnaryExpression') {
+	if (ast.type === 'UnaryExpr') {
 		const { argument, operator } = ast
 
 		const val = interpret(argument, scope)
@@ -104,11 +104,11 @@ function interpret(ast, scope) {
 			case '-':
 				return -val
 			default:
-				throw new Error(`unsupported UnaryExpression operator ${operator}`)
+				throw new Error(`unsupported unary operator ${operator}`)
 		}
 	}
 
-	if (ast.type === 'BinaryExpression') {
+	if (ast.type === 'BinaryExpr') {
 		const { left, operator, right } = ast;
 
 		const leftVal = interpret(left, scope)
@@ -144,7 +144,7 @@ function interpret(ast, scope) {
 		}
 	}
 
-	if (ast.type === 'ConditionalExpression') {
+	if (ast.type === 'ConditionalExpr') {
 		const { alternate, consequent, test } = ast
 		return interpret(test, scope) ? interpret(consequent, scope) : interpret(alternate, scope)
 	}
@@ -153,4 +153,4 @@ function interpret(ast, scope) {
 	throw new Error(`unknown type: ${ast.type}`)
 }
 
-module.exports = { interpret, globalScope }
+module.exports = interpret
