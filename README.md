@@ -1,30 +1,70 @@
 # FateLang
-Made by CodeLongAndProsper, MatthewProSkills, and PowerCoder
+Made by Pavi, MatthewProSkills, and PowerCoder
 
+### **Note: ALL Changable Values Are Defined By `{}`**
+ 
 ### **`Functions`**
 ##### Defining
 ```
-fun <name> (args*) {
- <code>
+fun {name} (args*) {
+ {code}
 } 
 ```
 ##### Calling
 ```
-<name>(args*)
+{name}(args*)
 ```
 ### **`Variables`**
 #### Defining
 ```
-name = "Foo"
+set {name} = {value}
 ```
 #### Calling
 ```
-name
+{name}
 ```
-#### Lines Split By `,pls,`
+#### ** `ARRAY / OBJECTS`**
 ```
-,pls,
+EXAMPLE:
+set x = {'any': 'hello'}
+print(x.any)
+x = ['other']
+print(x[0])
 ```
+#### `Loops`
+```
+loop {start} > {var} > {end} > {skip} {
+	{code}
+}
+EXAMPLE:
+loop 0 > x > 10 > 2 {
+  print('hello', x)
+}
+```
+# **`Ask / If`**
+```
+ask:true == true then:
+	print('yes')
+else:
+	print('no')
+----OR----
+if:true == true then:
+	print('yes')
+else:
+	print('no')
+```
+# `Inbuilt:`
+### DO MATH
+```
+set x = doMath('1+1')
+```
+### **`Import`**
+```
+import("{package_name}")
+```
+
+
+# `UNDER CONSTRUCTION`
 ### **`Space Manipulators`**
 ```
 \n(<amm>)
