@@ -75,10 +75,18 @@ StatementList = head:Statement? tail:(_ Statement)* {
   return buildList(head, tail, 1)
 }
 
-Statement = VarDecl / FunDecl / CallExpr / AssignmentExpr / EOS / Comment
+Statement = If / VarDecl / FunDecl / CallExpr / AssignmentExpr / EOS / Comment / Loop
 
+If = ('ask' / 'if') _ ':' _ one:(Expr / Identifier) _ sign:('==' / '!=' / '&&' / '>' / '<' / '>=' / '<=') _ two:(Expr / Identifier) _ '{' _ iftrue:(Statement*) _ '}' _ 'else' _ '{' _ iffalse:(Statement*) _ '}'{
+	return {type: 'if', check: {one: one, sign: sign, two: two}, iftrue: iftrue, iffalse: iffalse}
+}
+
+
+Loop = 'loop' _ start:([0-9]+) _ '>' _ variable:([a-zA-Z]+) _ '>' _ end:([0-9]+) _ '>'_ times:([1-9] [0-9]*) _ '{' _ code:(Statement _)* _ '}' _ {
+	return {type: 'loop', start: start.join(''), end: end.join(''), variable: variable.join(''), skip: times.join(''), code: code.map(el => {return el[0]})}
+}
 VarDecl = "set" _ id:Identifier _ '=' _ expr:Expr EOS {
-  return { type: 'VarDecl', id, expr }
+  return { type: 'VarDecl', id, expr}
 }
 
 FunDecl = "fun" _ id:Identifier _ '(' head:Identifier? tail:(_ ',' _ Identifier)* ')' _ '{' _ body:StatementList _ '}' {
@@ -93,13 +101,15 @@ AssignmentExpr = id:Identifier _ '=' _ expr:Expr {
   return { type: 'Assignment', id, expr }
 }
 
-Expr = Literal / ArrayLiteral / CallExpr
+Expr = Literal / ArrayLiteral / CallExpr / ObjectLiteral
 
-BinOps = '+' / '-' / '*' / '/'
+BinOps = [+-/*]*
 
-ArrayLiteral = '[' _ head:Literal? tail:(_ ',' _ Literal)* _ ']' {
+ArrayLiteral = '[' _ head:Expr? tail:(_ ',' _ Expr)* _ ']' {
   return { type: 'ArrayExpr', value: [].concat(optionalList(head), extractList(tail, 3)) }
 }
+
+ObjectLiteral = all:('{' _ (_ Str _ ':' _ Expr _)? _ (_ ',' _ Str _ ':' _ Expr _)* _ '}') {let returnarray = []; for(let i=1; i<(all.length+1)/2; i++){returnarray.push(all[i*2])}; if(returnarray[0]){returnarray[0] = [returnarray[0][1], returnarray[0][5]]}; for(let i=0; i<returnarray[1].length;i++){returnarray[1][i] = [returnarray[1][i][3], returnarray[1][i][7]]}let returnarray2 = [returnarray[0]]; returnarray[1].forEach(el => returnarray2.push(el));let returnarray3 = {type: 'Object', value: returnarray2}; return returnarray3}
 
 Literal = Str / Bool / Number / Null
 
@@ -119,8 +129,8 @@ Null = "null" {
   return { type: 'NullLiteral' }
 }
 
-Identifier = head:[$_a-zA-Z] tail:[a-zA-Z0-9]* {
-  return { type: 'Identifier', name: head + tail.join('') }
+Identifier = head:[$_a-zA-Z] tail:[a-zA-Z0-9]*  other: (('[' [0-9]+ ']') / ('.' [a-zA-Z0-9]+))*{
+    return { type: 'Identifier', name: head + tail.join(''), other: other}
 }
 
 Comment "comment" = MultiLineComment / SingleLineComment / Newline
@@ -132,9 +142,11 @@ MultiLineCommentNoLineTerminator = "/*" (!("*/" / LineTerminator) .)* "*/"
 
 SingleLineComment = "//" (!LineTerminator .)* {return {type: 'comment'}}
 
-LineTerminator = '\n'
+LineTerminator = [\n]+
 
-_ "whitespace" = [\s]*
+_ "whitespace" = space*
+
+space = [ \t\n\r]+
 
 EOS = '\n'+ { return }
 
