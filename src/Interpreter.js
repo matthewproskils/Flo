@@ -7,14 +7,13 @@ function Unique(myArray) {
 
 function interpret(ast, scope) {
 	if (ast === undefined) return
+
 	if (ast.type === "Program") {
 		//Check If Body Is Unefined
-		if (ast.body[0] == null) {
-			return
-		} else {
-			let globalScope = new Scope(builtins, null)
-			return ast.body.map(k => interpret(k, globalScope))
-		}
+		if (ast.body[0] == null) return
+
+		let globalScope = new Scope(builtins, null)
+		return ast.body.map(k => interpret(k, globalScope))
 	}
 
 	if (ast.type === 'NullLiteral') {
@@ -58,7 +57,7 @@ function interpret(ast, scope) {
 		const closureOrFunc = interpret(callee, scope);
 		switch (closureOrFunc.type) {
 			case 'function':
-				return closureOrFunc.call.apply(null, argVals);
+				return closureOrFunc.run.apply(null, argVals);
 
 			default:
 				throw new Error(`The function ${callee.value} doesn't exist`)
@@ -67,13 +66,12 @@ function interpret(ast, scope) {
 
 	if (ast.type === "VarDecl") {
 		const { id: { name }, expr } = ast
-
+		
 		const exprVal = interpret(expr, scope)
 
 		let containsVar = scope.get(name)
 
 		if (containsVar) throw new Error(`variable ${name} is redeclared`)
-
 		scope.set(name, exprVal);
 
 		return undefined;
@@ -83,7 +81,7 @@ function interpret(ast, scope) {
 		const { id: { name }, params, body } = ast
 
 		const funBody = {
-			type: 'function', name, call: (...args) => {
+			type: 'function', name, run: (...args) => {
 
 				const funScope = new Scope({}, scope)
 
@@ -105,9 +103,7 @@ function interpret(ast, scope) {
 	}
 
 	if (ast.type == 'ArrayExpr') {
-		let returnarray = []
-		ast.value.forEach(el => returnarray.push(interpret(el, scope)))
-		return returnarray
+		return ast.value.map(el => interpret(el, scope))
 	}
 
 	if (ast.type === "Assignment") {
@@ -118,18 +114,8 @@ function interpret(ast, scope) {
 		let containsVar = scope.get(name);
 
 		if (!containsVar) throw new Error(`Variable ${name} is not declared yet`)
-
-		if (ast.other != []) {
-			let joinedfull = []
-			ast.id.other.forEach(el => {
-				let joined = []
-				el.forEach(al => {
-					if (Array.isArray(al)) {
-						joined.push(al.join(''))
-					}
-				})
-				joinedfull.push(joined.join(''))
-			})
+		if (ast.id.other.length > 0) {
+			let joinedfull = ast.id.other.map(el => el.filter(Array.isArray).map(al => al.join('')).join(''))
 			let x = scope.scope[name]
 			scope.objset(name, joinedfull, exprVal)
 		} else {
@@ -154,12 +140,12 @@ function interpret(ast, scope) {
 	}
 
 	if (ast.type === 'BinaryExpr') {
-		const { left, operator, right } = ast;
+		const { left, op, right } = ast;
 
 		const leftVal = interpret(left, scope)
 		const rightVal = interpret(right, scope)
 
-		switch (operator) {
+		switch (op) {
 			case '+':
 				return leftVal + rightVal
 			case '-':
@@ -185,7 +171,7 @@ function interpret(ast, scope) {
 			case '>=':
 				return leftVal >= rightVal
 			default:
-				throw new Error(`unsupported binary operator ${operator}`)
+				throw new Error(`unsupported binary operator ${op}`)
 		}
 	}
 
@@ -193,8 +179,16 @@ function interpret(ast, scope) {
 		const { alternate, consequent, test } = ast
 		return interpret(test, scope) ? interpret(consequent, scope) : interpret(alternate, scope)
 	}
+	
+	if (ast.type == 'IfStmt') {
+	// Merge with ConditionalExpr!!
+		return (eval(interpret(ast.check.one, scope) + ast.check.sign + interpret(ast.check.two, scope)))
+			? ast.iftrue.map(el => interpret(el, scope))
+			: ast.iffalse.map(el => interpret(el, scope))
+	}
 
-	if (ast.type == 'Object') {
+	if (ast.type == 'ObjectLiteral') {
+		//clean up!!
 		let matches = []
 		ast.value.forEach(el => matches.push(el[0].value))
 		if (Unique(matches)) {
@@ -203,30 +197,23 @@ function interpret(ast, scope) {
 				total[interpret(el[0])] = interpret(el[1])
 			})
 			return total
-		} else {
-			throw new Error(`Name Repeats Are Not Allowed In Object`)
 		}
+		throw new Error(`Name Repeats Are Not Allowed In Object`)
 	}
 
-	if (ast.type == 'loop') {
-		let { start, end, skip: step, variable } = ast
-		start = parseInt(start)
-		end = parseInt(end)
-		step = parseInt(step)
+	if (ast.type == 'LoopStmt') {
+		let { start, end, step, variable, body} = ast
 
-		for (let x = start; x <= end; x = x + skip) {
-			let otherscope = new Scope({}, scope)
-			otherscope.set(ast.variable.toString(), x)
-			ast.code.forEach(el => { interpret(el, otherscope) })
+		start = parseInt(interpret(start, scope))
+		end = parseInt(interpret(end, scope))
+		step = parseInt(interpret(step, scope))
+		if(variable.name  in scope.scope){
+			throw new Error(`Cannot use declared (${variable.name}) variable in loop`)
 		}
-		return
-	}
-
-	if (ast.type == 'if') {
-		if (eval(interpret(ast.check.one, scope) + ast.check.sign + interpret(ast.check.two, scope))) {
-			ast.iftrue.forEach(el => interpret(el, scope))
-		} else {
-			ast.iffalse.forEach(el => interpret(el, scope))
+		for (let x = start; x <= end; x = x + step) {
+			scope.set(variable.name, x)
+			ast.body.forEach(el => {interpret(el, scope)})
+			delete scope.scope[variable.name]
 		}
 		return
 	}
@@ -234,7 +221,10 @@ function interpret(ast, scope) {
 	if (ast.type == 'comment') {
 		return
 	}
-
+	if(ast.type == 'ThrowLiteral'){
+		console.log(interpret(ast.value[1], scope))
+		return
+	}
 	throw new Error(`unknown type: ${ast.type}`)
 }
 
