@@ -19,13 +19,18 @@ const builtins = {
   "print": {
     type: "function",
     run: (...args) => {
-      process.stdout.write(args.map(toFateString).join(''))
+			let otherargs = []
+			args.forEach(el => {otherargs.push(toFateString(el))})
+      process.stdout.write(otherargs.join(''))
     }
   },
   "println": {
     type: "function",
     run: (...args) => {
-      process.stdout.write(args.map(toFateString).join('') + '\n')
+			let otherargs = []
+			args.forEach(el => {otherargs.push(toFateString(el))})
+      process.stdout.write(otherargs.join('') + '\n')
+			return
     }
   },
   "evalJS": {
@@ -81,11 +86,11 @@ function toFateString(val) {
     return "null"
   }
 
-  if (typeof (val) == 'string') {
+  if (typeof(val) == 'string') {
     return val
   }
 
-  if (typeof (val) === 'boolean' || typeof (val) === 'number') {
+  if (typeof(val) === 'boolean' || typeof(val) === 'number') {
     return JSON.stringify(val)
   }
 
@@ -93,11 +98,11 @@ function toFateString(val) {
     return JSON.stringify(val)
   }
 
-  if (typeof (val) == 'object') {
+  if (typeof(val) == 'object') {
     return JSON.stringify(val)
   }
 
-  if (typeof (val) == 'function') {
+  if (typeof(val) == 'function') {
     return '() -> { ... }'
   }
   return '<unknown type: ' + val + '>'
