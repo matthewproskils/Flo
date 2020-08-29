@@ -33,15 +33,12 @@ Program = body:StatementList {
 	return { type: "Program", body }
 }
 
-StatementList = head:Statement* {
-  return head
+StatementList = head:(_ Statement _ )* {
+  return head.map(el => el[1])
 }
 
-Statement = ThrowLiteral / IfStmt / LoopStmt / VarDecl / FunDecl / Expr / AssignmentExpr / Comment EOS
+Statement = VarDecl /  IfStmt / LoopStmt  / FunDecl / Expr / AssignmentExpr / Comment EOS
 
-ThrowLiteral = all:(_ (Literal/Identifier) _){
-	return {type: "ThrowLiteral", value: all }
-}
 
 IfStmt = IF_TOKEN _ ':' _ one:(Expr / Identifier) _ sign:('==' / '!=' / '&&' / '>' / '<' / '>=' / '<=') _ two:(Expr / Identifier) _ '{' _ iftrue:StatementList _ '}' _ ELSE_TOKEN _ '{' _ iffalse:StatementList _ '}' EOS {
 	return { type: 'IfStmt', check: {one, sign, two}, iftrue, iffalse }
@@ -55,8 +52,8 @@ VarDecl = VAR_TOKEN _ id:Identifier _ '=' _ expr:Expr EOS {
   return { type: 'VarDecl', id, expr }
 }
 
-FunDecl = FUN_TOKEN _ id:Identifier _ '(' head:Identifier? tail:(_ ',' _ Identifier)* ')' _ '{' _ body:StatementList _ '}' {
-  return { type: "FunDecl", id, params: [].concat(optList(head), extractList(tail, 3)), body }
+FunDecl = FUN_TOKEN _ id:Identifier _ '(' head:Identifier? tail:(_ ',' _ Identifier)* ')' _ '{' _ body:StatementList _ '}' EOS{
+  return { type: "FunDecl", id, params: [].concat(optList(head), extractList(tail, 3)), body: body}
 }
 
 CallExpr = id:Identifier '(' head:(Expr / Identifier)? tail:(_ ',' _ (Expr / Identifier))* ')' {
@@ -67,9 +64,9 @@ AssignmentExpr = id:Identifier _ '=' _ expr:Expr {
   return { type: 'Assignment', id, expr }
 }
 
-Expr =  BinaryExpr / Literal / ArrayLiteral / CallExpr / ObjectLiteral
+Expr =  ArrayLiteral / ObjectLiteral / BinaryExpr / CallExpr / Literal
 
-BinaryExpr = left:(Literal / Identifier) _ op:BIN_OPS _ right:(Literal / Identifier / BinaryExpr) {
+BinaryExpr = left:(Literal / Identifier / CallExpr) _ op:BIN_OPS _ right:(Literal / CallExpr / Identifier  / BinaryExpr) {
   return { type: 'BinaryExpr', left, op, right }
 }
 
