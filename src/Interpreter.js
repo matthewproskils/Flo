@@ -13,7 +13,8 @@ function interpret(ast, scope) {
 		if (ast.body[0] == null) return
 
 		let globalScope = new Scope(builtins, null)
-		return ast.body.map(k => interpret(k, globalScope))
+		return ast.body.map(k => {interpret(k, globalScope)})
+		
 	}
 
 	if (ast.type === 'NullLiteral') {
@@ -23,14 +24,14 @@ function interpret(ast, scope) {
 	if (ast.type === 'StringLiteral'
 		|| ast.type === 'NumberLiteral'
 		|| ast.type === 'BooleanLiteral') {
-		return ast.value;
+        return ast.value;
 	}
 
 	if (ast.type === 'Identifier') {
 		const { name } = ast;
-		let got = scope.get(name, scope);
-		if (got == void (0)) {
-			throw new Error(`${ast.name} is undefined`)
+		got = scope.get(name)
+		if (got == void(0)) {
+			throw new Error(`${name} is undefined`)
 		}
 		if (ast.other != []) {
 			ast.other.forEach(el => {
@@ -40,7 +41,6 @@ function interpret(ast, scope) {
 					}
 					got = got[el[1].join('')]
 				} else if (el[0] == '[') {
-					console.log()
 					if (!Array.isArray(got)) {
 						throw new Error(`${got} is not an array`)
 					}
@@ -52,15 +52,19 @@ function interpret(ast, scope) {
 	}
 
 	if (ast.type === "CallExpr") {
-		const { id: callee, args } = ast
+		const { id, args } = ast
 		const argVals = ast.args.map(arg => interpret(arg, scope))
-		const closureOrFunc = interpret(callee, scope);
-		switch (closureOrFunc.type) {
+		//Check If Name In Scope
+		if(scope.get(id.name) == void(0)){
+			throw new Error(`The function ${id.name} doesn't exist`)
+		}
+		//Check If Type == Function
+		switch (scope.get(id.name).type) {
 			case 'function':
-				return closureOrFunc.run.apply(null, argVals);
+ 				return scope.get(id.name).run.apply(null, argVals);
 
 			default:
-				throw new Error(`The function ${callee.value} doesn't exist`)
+				throw new Error(`The function ${id.name} doesn't exist`)
 		}
 	}
 
@@ -73,12 +77,11 @@ function interpret(ast, scope) {
 
 		if (containsVar) throw new Error(`variable ${name} is redeclared`)
 		scope.set(name, exprVal);
-
-		return undefined;
+		return;
 	}
 
 	if (ast.type === "FunDecl") {
-		const { id: { name }, params, body } = ast
+		let { id: { name }, params, body ,last} = ast
 
 		const funBody = {
 			type: 'function', name, run: (...args) => {
@@ -88,8 +91,9 @@ function interpret(ast, scope) {
 				params.forEach((param, i) => {
 					funScope.set(param.name, args[i])
 				})
-
-				return body.map(b => interpret(b, funScope))
+				body = body.map(b => interpret(b, funScope))
+				//returns last element
+				return body[body.length-1][0];
 			}
 		}
 
@@ -99,7 +103,7 @@ function interpret(ast, scope) {
 
 		scope.set(name, funBody);
 
-		return undefined
+		return
 	}
 
 	if (ast.type == 'ArrayExpr') {
@@ -121,7 +125,7 @@ function interpret(ast, scope) {
 		} else {
 			scope.set(name, exprVal)
 		}
-		return undefined
+		return
 	}
 
 	if (ast.type === 'UnaryExpr') {
@@ -210,19 +214,20 @@ function interpret(ast, scope) {
 		if(variable.name  in scope.scope){
 			throw new Error(`Cannot use declared (${variable.name}) variable in loop`)
 		}
-		for (let x = start; x <= end; x = x + step) {
+		//This does it total times - 1
+		for (let x = start;x != end; x = x + step) {
 			scope.set(variable.name, x)
 			ast.body.forEach(el => {interpret(el, scope)})
 			delete scope.scope[variable.name]
 		}
+		//So we have to add extra time right here
+		scope.set(variable.name, end)
+		ast.body.forEach(el => {interpret(el, scope)})
+		delete scope.scope[variable.name]
 		return
 	}
 
-	if (ast.type == 'comment') {
-		return
-	}
-	if(ast.type == 'ThrowLiteral'){
-		console.log(interpret(ast.value[1], scope))
+	if (ast[0].type == 'comment') {
 		return
 	}
 	throw new Error(`unknown type: ${ast.type}`)
