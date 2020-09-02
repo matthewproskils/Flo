@@ -1,4 +1,4 @@
-# FateLang
+# Flo
 Made by Pavi, MatthewProSkills, and PowerCoder
 
 ### **Note: ALL Changable Values Are Defined By `{}`**
@@ -64,7 +64,6 @@ import("{package_name}")
 ```
 
 
-# `UNDER CONSTRUCTION`
 ### **`Space Manipulators`**
 ```
 \n(<amm>)
